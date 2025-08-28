@@ -26,7 +26,7 @@ import {
   type InsertPurchaseTransactionItem,
   type VatLedgerEntry,
   type InsertVatLedgerEntry,
-} from "@shared/schema";
+} from "../shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, sum } from "drizzle-orm";
 

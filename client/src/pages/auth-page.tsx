@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { useMutation } from "@tanstack/react-query";
 
 export default function AuthPage() {
@@ -14,10 +15,8 @@ export default function AuthPage() {
   const { toast } = useToast();
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
-    },
+    mutationFn: async (credentials: { username: string; password: string }) =>
+      apiRequest("POST", "/api/login", credentials),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       window.location.href = "/";
