@@ -9,15 +9,19 @@ export function isAuthenticated(req: any, res: any, next: any) {
   }
   next();
 }
+// removed @shared/schema import; using relative imports below
+// Use relative import to shared schema
+// eslint-disable-next-line import/no-relative-packages
+// replaced alias with relative path
 import {
-  insertVendorSchema,
-  insertCustomerSchema,
-  insertItemSchema,
-  insertSalesTransactionSchema,
-  insertSalesTransactionItemSchema,
-  insertPurchaseTransactionSchema,
-  insertPurchaseTransactionItemSchema,
-} from "@shared/schema";
+  insertVendorSchema as _insertVendorSchema,
+  insertCustomerSchema as _insertCustomerSchema,
+  insertItemSchema as _insertItemSchema,
+  insertSalesTransactionSchema as _insertSalesTransactionSchema,
+  insertSalesTransactionItemSchema as _insertSalesTransactionItemSchema,
+  insertPurchaseTransactionSchema as _insertPurchaseTransactionSchema,
+  insertPurchaseTransactionItemSchema as _insertPurchaseTransactionItemSchema,
+} from "../shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -76,7 +80,7 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/vendors', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertVendorSchema.parse(req.body);
+      const validatedData = _insertVendorSchema.parse(req.body);
       const vendor = await storage.createVendor(validatedData);
       res.status(201).json(vendor);
     } catch (error) {
@@ -87,7 +91,7 @@ export function registerRoutes(app: Express): Server {
 
   app.put('/api/vendors/:id', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertVendorSchema.partial().parse(req.body);
+      const validatedData = _insertVendorSchema.partial().parse(req.body);
       const vendor = await storage.updateVendor(req.params.id, validatedData);
       res.json(vendor);
     } catch (error) {
@@ -119,7 +123,7 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/customers', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertCustomerSchema.parse(req.body);
+      const validatedData = _insertCustomerSchema.parse(req.body);
       const customer = await storage.createCustomer(validatedData);
       res.status(201).json(customer);
     } catch (error) {
@@ -130,7 +134,7 @@ export function registerRoutes(app: Express): Server {
 
   app.put('/api/customers/:id', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertCustomerSchema.partial().parse(req.body);
+      const validatedData = _insertCustomerSchema.partial().parse(req.body);
       const customer = await storage.updateCustomer(req.params.id, validatedData);
       res.json(customer);
     } catch (error) {
@@ -152,7 +156,7 @@ export function registerRoutes(app: Express): Server {
 
   app.post('/api/items', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertItemSchema.parse(req.body);
+      const validatedData = _insertItemSchema.parse(req.body);
       const item = await storage.createItem(validatedData);
       res.status(201).json(item);
     } catch (error) {
@@ -163,7 +167,7 @@ export function registerRoutes(app: Express): Server {
 
   app.put('/api/items/:id', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertItemSchema.partial().parse(req.body);
+      const validatedData = _insertItemSchema.partial().parse(req.body);
       const item = await storage.updateItem(req.params.id, validatedData);
       res.json(item);
     } catch (error) {
@@ -200,8 +204,8 @@ export function registerRoutes(app: Express): Server {
   });
 
   const createSalesSchema = z.object({
-    transaction: insertSalesTransactionSchema,
-    items: z.array(insertSalesTransactionItemSchema),
+    transaction: _insertSalesTransactionSchema,
+    items: z.array(_insertSalesTransactionItemSchema),
   });
 
   app.post('/api/sales', isAuthenticated, async (req: any, res) => {
@@ -245,8 +249,8 @@ export function registerRoutes(app: Express): Server {
   });
 
   const createPurchaseSchema = z.object({
-    transaction: insertPurchaseTransactionSchema,
-    items: z.array(insertPurchaseTransactionItemSchema),
+    transaction: _insertPurchaseTransactionSchema,
+    items: z.array(_insertPurchaseTransactionItemSchema),
   });
 
   app.post('/api/purchases', isAuthenticated, async (req: any, res) => {

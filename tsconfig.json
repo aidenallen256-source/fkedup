@@ -1,18 +1,18 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "NodeNext",
+    "module": "ESNext",
     "jsx": "react-jsx",
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["client/src/*"]
     },
-    "moduleResolution": "nodenext", // Changed from "node" to "nodenext"
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "strict": true // Optional: Enables stricter type checking for better safety
+    "strict": true
   },
-  "include": ["src", "tailwind.config.ts"],
+  "include": ["client/src", "tailwind.config.ts"],
   "exclude": ["node_modules"]
 }

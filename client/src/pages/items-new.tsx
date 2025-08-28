@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/layout/main-layout";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertItemSchema, type Item, type InsertItem } from "@shared/schema";
+import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -35,10 +36,27 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 
-const itemFormSchema = insertItemSchema.extend({
-  costPrice: insertItemSchema.shape.costPrice.transform((val) => val.toString()),
-  sellingPrice: insertItemSchema.shape.sellingPrice.transform((val) => val.toString()),
-  wholesalePrice: insertItemSchema.shape.wholesalePrice.optional().transform((val) => val?.toString() || ""),
+// Local client-side schema to avoid importing server/shared alias
+const itemBaseSchema = z.object({
+  name: z.string().min(1),
+  category: z.string().optional().default(""),
+  brand: z.string().optional().default(""),
+  costPrice: z.union([z.number(), z.string()]),
+  sellingPrice: z.union([z.number(), z.string()]),
+  wholesalePrice: z.union([z.number(), z.string()]).optional(),
+  unit: z.string().default("pcs"),
+  stockQuantity: z.number().int().nonnegative().default(0),
+  openingQuantity: z.number().int().nonnegative().default(0),
+  minStockLevel: z.number().int().nonnegative().default(0),
+});
+
+export type InsertItem = z.infer<typeof itemBaseSchema>;
+export type Item = InsertItem & { id: string };
+
+const itemFormSchema = itemBaseSchema.extend({
+  costPrice: z.union([z.number(), z.string()]).transform((val) => val.toString()),
+  sellingPrice: z.union([z.number(), z.string()]).transform((val) => val.toString()),
+  wholesalePrice: z.union([z.number(), z.string()]).optional().transform((val) => val?.toString() || ""),
 });
 
 export default function Items() {
@@ -69,10 +87,7 @@ export default function Items() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: InsertItem) => {
-      const response = await apiRequest("POST", "/api/items", data);
-      return response.json();
-    },
+    mutationFn: async (data: InsertItem) => apiRequest("POST", "/api/items", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       setIsDialogOpen(false);
@@ -92,10 +107,8 @@ export default function Items() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertItem> }) => {
-      const response = await apiRequest("PUT", `/api/items/${id}`, data);
-      return response.json();
-    },
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertItem> }) =>
+      apiRequest("PUT", `/api/items/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       setIsDialogOpen(false);

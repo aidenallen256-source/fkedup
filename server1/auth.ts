@@ -6,7 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User } from "@shared/schema";
-import connectPg from "connect-pg-simple";
+// Use default MemoryStore for sessions in dev to avoid native dependencies
 
 declare global {
   namespace Express {
@@ -31,19 +31,12 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: true,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'default-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: sessionStore,
+    // MemoryStore is fine for development
     cookie: {
       httpOnly: true,
       secure: false, // Set to true in production with HTTPS
