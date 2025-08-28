@@ -12,7 +12,7 @@ import PurchaseLedger from "./pages/purchase-ledger";
 import SalesLedger from "./pages/sales-ledger";
 import Vendors from "./pages/vendors";
 import Customers from "./pages/customers";
-import Items from "./pages/items-new";
+import Items from "./pages/items";
 import Reports from "./pages/reports";
 
 function Router() {

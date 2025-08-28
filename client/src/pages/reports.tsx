@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText, BarChart3, Receipt } from "lucide-react";
+import * as XLSX from "xlsx";
 
 export default function Reports() {
   const { toast } = useToast();
@@ -67,10 +68,35 @@ export default function Reports() {
   };
 
   const handleExportPDF = () => {
-    toast({
-      title: "PDF Export",
-      description: "PDF export functionality would be implemented here",
-    });
+    const content = document.createElement('div');
+    const title = document.createElement('h2');
+    title.textContent = `Report: ${reportType}`;
+    content.appendChild(title);
+    const summary = document.createElement('p');
+    summary.textContent = `From ${fromDate || 'All time'} To ${toDate || 'Now'}`;
+    content.appendChild(summary);
+    const w = window.open('', 'print');
+    if (w) {
+      w.document.body.appendChild(content);
+      w.print();
+      w.close();
+    }
+  };
+
+  const exportToCsv = (rows: any[], filename: string) => {
+    const csv = [Object.keys(rows[0] || {}).join(','), ...rows.map(r => Object.values(r).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  };
+
+  const exportToXlsx = (rows: any[], filename: string) => {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+    XLSX.writeFile(wb, filename);
   };
 
   // Calculate compliance metrics
@@ -159,6 +185,14 @@ export default function Reports() {
                 <Button variant="outline" onClick={handleExportPDF} data-testid="button-export-pdf">
                   <Download className="w-4 h-4 mr-2" />
                   PDF
+                </Button>
+                <Button variant="outline" onClick={() => exportToCsv(vatEntries || [], 'report.csv')} data-testid="button-export-csv">
+                  <Download className="w-4 h-4 mr-2" />
+                  CSV
+                </Button>
+                <Button variant="outline" onClick={() => exportToXlsx(vatEntries || [], 'report.xlsx')} data-testid="button-export-xlsx">
+                  <Download className="w-4 h-4 mr-2" />
+                  XLSX
                 </Button>
               </div>
             </div>
