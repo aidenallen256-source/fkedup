@@ -6,7 +6,65 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/api";
+
+function QuickAddCustomer({ onCreated }: { onCreated: (c: any) => void }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [creditLimit, setCreditLimit] = useState("0");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!name) return;
+    setSaving(true);
+    try {
+      const customer = await apiRequest("POST", "/api/customers", {
+        name,
+        phone,
+        email,
+        address,
+        creditLimit: parseFloat(creditLimit).toString(),
+      });
+      onCreated(customer);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label>Name *</Label>
+        <Input value={name} onChange={(e)=>setName(e.target.value)} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Phone</Label>
+          <Input value={phone} onChange={(e)=>setPhone(e.target.value)} />
+        </div>
+        <div>
+          <Label>Email</Label>
+          <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <Label>Address</Label>
+        <Input value={address} onChange={(e)=>setAddress(e.target.value)} />
+      </div>
+      <div>
+        <Label>Credit Limit</Label>
+        <Input type="number" step="0.01" value={creditLimit} onChange={(e)=>setCreditLimit(e.target.value)} />
+      </div>
+      <div className="flex justify-end">
+        <Button type="button" onClick={save} disabled={saving}>{saving?"Saving...":"Save"}</Button>
+      </div>
+    </div>
+  );
+}
 
 interface SalesFormProps {
   customers: any[];
@@ -32,6 +90,10 @@ export default function SalesForm({ customers, items, onSubmit, isSubmitting }: 
   const [salesItems, setSalesItems] = useState<SalesItem[]>([]);
   const [vatEnabled, setVatEnabled] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchCategory, setSearchCategory] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [orderType, setOrderType] = useState("pos");
 
   // Generate invoice number on component mount
   useEffect(() => {
@@ -160,9 +222,23 @@ export default function SalesForm({ customers, items, onSubmit, isSubmitting }: 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Customer Selection */}
+            {/* Customer Selection + Order Type */}
             <div>
-              <Label htmlFor="customer">Customer</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="customer">Customer</Label>
+                <div className="flex items-center gap-2">
+                  <Label>Order:</Label>
+                  <Select value={orderType} onValueChange={setOrderType}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pos">POS</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="flex space-x-2 mt-2">
                 <Select value={customerId} onValueChange={handleCustomerChange}>
                   <SelectTrigger data-testid="select-customer">
@@ -177,6 +253,21 @@ export default function SalesForm({ customers, items, onSubmit, isSubmitting }: 
                     ))}
                   </SelectContent>
                 </Select>
+                {/* Quick add customer */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="secondary">Add Customer</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Customer</DialogTitle>
+                    </DialogHeader>
+                    <QuickAddCustomer onCreated={(c:any)=>{
+                      setCustomerId(c.id);
+                      setCustomerName(c.name);
+                    }} />
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
 
@@ -296,15 +387,93 @@ export default function SalesForm({ customers, items, onSubmit, isSubmitting }: 
                 </TableBody>
               </Table>
               <div className="p-4 border-t border-border">
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  onClick={addItem}
-                  data-testid="button-add-item"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Item
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={addItem}
+                    data-testid="button-add-item"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Row
+                  </Button>
+                  <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+                    <DialogTrigger asChild>
+                      <Button type="button" variant="outline">
+                        <Search className="w-4 h-4 mr-2" />
+                        Search Items
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Find Items</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="col-span-1">
+                          <Label>Category</Label>
+                          <Select value={searchCategory} onValueChange={setSearchCategory}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">All</SelectItem>
+                              {[...new Set(items.map(i => i.category).filter(Boolean))].map((cat) => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-2">
+                          <Label>Search</Label>
+                          <Input value={searchQuery} onChange={(e)=>setSearchQuery(e.target.value)} placeholder="Type product name" />
+                        </div>
+                      </div>
+                      <div className="max-h-80 overflow-auto border rounded">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted">
+                              <TableHead>Name</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Stock</TableHead>
+                              <TableHead>Price</TableHead>
+                              <TableHead></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {items
+                              .filter(i => (searchCategory ? i.category === searchCategory : true))
+                              .filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                              .map((i) => (
+                                <TableRow key={i.id}>
+                                  <TableCell>{i.name}</TableCell>
+                                  <TableCell>{i.category}</TableCell>
+                                  <TableCell>{i.stockQuantity}</TableCell>
+                                  <TableCell>Rs. {Number(i.sellingPrice).toFixed(2)}</TableCell>
+                                  <TableCell>
+                                    <Button type="button" size="sm" onClick={() => {
+                                      setSalesItems([
+                                        ...salesItems,
+                                        {
+                                          itemId: i.id,
+                                          itemName: i.name,
+                                          quantity: 1,
+                                          unitPrice: Number(i.sellingPrice),
+                                          discountPercent: 0,
+                                          discountAmount: 0,
+                                          totalPrice: Number(i.sellingPrice),
+                                        },
+                                      ]);
+                                      setSearchOpen(false);
+                                    }}>Add</Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </div>
           </div>

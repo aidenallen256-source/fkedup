@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import TransactionTable from "@/components/tables/transaction-table";
-import { Plus, Edit, AlertTriangle } from "lucide-react";
+import { Plus, Edit, AlertTriangle, Upload } from "lucide-react";
 
 export default function Items() {
   const { toast } = useToast();
@@ -232,14 +232,36 @@ export default function Items() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Items</span>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={resetForm} data-testid="button-add-item">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Item
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+              <div className="flex items-center gap-2">
+                <form onSubmit={(e) => e.preventDefault()}>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const form = new FormData();
+                        form.append('file', file);
+                        await fetch('/api/items/import', { method: 'POST', body: form, credentials: 'include' });
+                        queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+                        e.currentTarget.reset?.();
+                      }}
+                    />
+                    <Button type="button" variant="secondary">
+                      <Upload className="w-4 h-4 mr-2" /> Import XLSX
+                    </Button>
+                  </label>
+                </form>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={resetForm} data-testid="button-add-item">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Item
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>
                       {editingItem ? "Edit Item" : "Add Item"}
@@ -362,8 +384,9 @@ export default function Items() {
                       </Button>
                     </div>
                   </form>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardTitle>
           </CardHeader>
         </Card>

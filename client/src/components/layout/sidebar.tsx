@@ -91,7 +91,12 @@ export default function Sidebar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.location.href = "/api/logout"}
+            onClick={async () => {
+              try {
+                await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+              } catch {}
+              window.location.href = '/';
+            }}
             data-testid="button-logout"
             className="text-muted-foreground hover:text-foreground"
           >

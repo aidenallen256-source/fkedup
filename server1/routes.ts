@@ -143,6 +143,16 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.delete('/api/customers/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteCustomer(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      res.status(500).json({ message: "Failed to delete customer" });
+    }
+  });
+
   // Item routes
   app.get('/api/items', isAuthenticated, async (req, res) => {
     try {
@@ -289,20 +299,35 @@ export function registerRoutes(app: Express): Server {
 
       const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      const data = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-      const items = data.map((row: any) => ({
-        name: row['Product Name'] || row['name'] || '',
-        category: row['Category'] || row['category'] || '',
-        brand: row['Brand'] || row['brand'] || '',
-        costPrice: parseFloat(row['CP'] || row['Cost Price'] || row['costPrice'] || '0'),
-        sellingPrice: parseFloat(row['SP'] || row['Selling Price'] || row['sellingPrice'] || '0'),
-        wholesalePrice: parseFloat(row['Wholesale'] || row['Wholesale Price'] || row['wholesalePrice'] || '0'),
-        unit: row['Unit'] || row['unit'] || 'pcs',
-        openingQuantity: parseInt(row['Opening Quantity'] || row['openingQuantity'] || '0'),
-        stockQuantity: parseInt(row['Opening Quantity'] || row['openingQuantity'] || '0'),
-        minStockLevel: 5,
-      })).filter((item: any) => item.name && item.costPrice > 0 && item.sellingPrice > 0);
+      const items = data.map((row: any, index: number) => {
+        // Support user's specified header format: sn | product | category | cp | wholesale | sp | uom | quantity
+        const hasCustomHeaders =
+          ('product' in row || 'Product' in row) &&
+          ('cp' in row || 'CP' in row);
+
+        const name = row['Product Name'] || row['name'] || row['product'] || row['Product'] || '';
+        const category = row['Category'] || row['category'] || '';
+        const costPrice = parseFloat(String(row['CP'] || row['cp'] || row['Cost Price'] || row['costPrice'] || 0));
+        const sellingPrice = parseFloat(String(row['SP'] || row['sp'] || row['Selling Price'] || row['sellingPrice'] || 0));
+        const wholesalePrice = parseFloat(String(row['Wholesale'] || row['wholesale'] || row['Wholesale Price'] || row['wholesalePrice'] || 0));
+        const unit = row['Unit'] || row['unit'] || row['uom'] || 'pcs';
+        const qty = parseInt(String(row['Opening Quantity'] || row['openingQuantity'] || row['quantity'] || row['Quantity'] || 0));
+
+        return {
+          name,
+          category,
+          brand: row['Brand'] || row['brand'] || '',
+          costPrice: isNaN(costPrice) ? 0 : costPrice,
+          sellingPrice: isNaN(sellingPrice) ? 0 : sellingPrice,
+          wholesalePrice: isNaN(wholesalePrice) ? 0 : wholesalePrice,
+          unit,
+          openingQuantity: isNaN(qty) ? 0 : qty,
+          stockQuantity: isNaN(qty) ? 0 : qty,
+          minStockLevel: 5,
+        };
+      }).filter((item: any) => item.name && item.costPrice > 0 && item.sellingPrice > 0);
 
       const createdItems = [];
       for (const item of items) {
